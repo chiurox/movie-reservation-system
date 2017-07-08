@@ -11,7 +11,7 @@ object Main extends App with Config with ActorContext with StrictLogging {
   val flywayService = new FlywayServiceImpl(dbUrl, dbUser, dbPass)
   logger.info("Running database migrations...")
   val dbMigrationResult = flywayService.migrate
-  logger.info(s"Database migration result: $dbMigrationResult")
+  logger.info(s"Database migrations run: $dbMigrationResult")
   val apiService = new ApiService()
 
   Http().bindAndHandle(handler = logRequestResult("log")(apiService.routes), interface = httpInterface, port = httpPort)
