@@ -1,6 +1,6 @@
 package models.db
 
-import models.{Movie, MovieId}
+import models.{Movie, MovieId, MovieIdent}
 import services.DatabaseService
 
 

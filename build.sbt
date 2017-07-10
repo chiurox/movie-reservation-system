@@ -3,6 +3,7 @@ name := "Movie Reservation System"
 version := "1.0"
 
 scalaVersion := "2.12.2"
+scalacOptions := Seq("-unchecked", "-feature", "-deprecation", "-encoding", "utf8")
 
 libraryDependencies ++= {
 
@@ -32,3 +33,4 @@ libraryDependencies ++= {
     "org.specs2" %% "specs2-mock" % "3.8.9"
   )
 }
+parallelExecution in Test := false

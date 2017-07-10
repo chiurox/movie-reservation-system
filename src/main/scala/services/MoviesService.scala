@@ -1,12 +1,10 @@
 package services
 
-import models.db.{MovieShowingTable, MovieTable}
 import models._
-import slick.sql.{FixedSqlStreamingAction, SqlAction}
+import models.db.MovieTable
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.language.postfixOps
-import com.typesafe.scalalogging.StrictLogging
 
 trait MoviesService {
 
@@ -14,40 +12,37 @@ trait MoviesService {
 
   def findById(id: MovieId): Future[Option[Movie]]
 
-  def findByImdbId(imdbId: ImdbId): Future[Seq[Movie]]
+  def findByImdbId(imdbId: ImdbId): Future[Option[Movie]]
 
   def insert(movie: Movie): Future[Movie]
 
-  def update(movie: Movie): Future[Movie]
+  def update(movie: Movie): Future[Option[Movie]]
 
-  def delete(imdbId: ImdbId): Future[ImdbId]
+  def delete(imdbId: ImdbId): Future[Int]
 }
 
 class MoviesServiceImpl(val databaseService: DatabaseService)(implicit executionContext: ExecutionContext)
-  extends MovieTable with MoviesService with StrictLogging {
+  extends MovieTable with MoviesService {
 
   import databaseService._
   import databaseService.driver.api._
 
-  override def getMovies: Future[Seq[Movie]] = movies.result
+  override def getMovies: Future[Seq[Movie]] = db.run(movies.result)
 
-  override def findById(id: MovieId): Future[Option[Movie]] = movies.filter(_.id === id).result.headOption
+  override def findById(id: MovieId): Future[Option[Movie]] = db.run(movies.filter(_.id === id).result.headOption)
 
-  override def findByImdbId(imdbId: ImdbId): Future[Seq[Movie]] = movies.filter(_.imdbId === imdbId).result
+  override def findByImdbId(imdbId: ImdbId): Future[Option[Movie]] = db.run(movies.filter(_.imdbId === imdbId).result.headOption)
 
-  override def insert(movie: Movie): Future[Movie] = movies returning movies += movie
-
-  override def update(movie: Movie): Future[Movie] = {
-    db.run(movies.filter(m => m.imdbId === movie.imdbId).update(movie).transactionally.map(_ => movie))
+  override def insert(movie: Movie): Future[Movie] = {
+    db.run(movies returning movies.map(_.id) += movie).map(movieId => movie.copy(id = movieId))
   }
 
-  override def delete(imdbId: ImdbId): Future[ImdbId] = {
-    db.run(movies.filter(movie => movie.imdbId === imdbId).delete.transactionally).map(_ => imdbId)
+  override def update(movie: Movie): Future[Option[Movie]] = {
+    db.run(movies.filter(m => m.imdbId === movie.imdbId).update(movie).transactionally).map(_ => Some(movie))
   }
 
-  //TODO: extract implicit helper methods to another util
-  protected implicit def executeFromDb[A](action: SqlAction[A, NoStream, _ <: slick.dbio.Effect]): Future[A] = {
-    db.run(action)
+  override def delete(imdbId: ImdbId): Future[Int] = {
+    db.run(movies.filter(movie => movie.imdbId === imdbId).delete.transactionally)
   }
 
   def getTable = movies
