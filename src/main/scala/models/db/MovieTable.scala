@@ -21,4 +21,5 @@ trait MovieTable {
   }
 
   protected val movies = TableQuery[Movies]
+
 }

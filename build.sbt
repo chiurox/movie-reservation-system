@@ -28,6 +28,7 @@ libraryDependencies ++= {
     "org.flywaydb" % "flyway-core" % "4.2.0",
     "com.typesafe.akka" %% "akka-testkit" % akkaVersion % "test",
     "org.scalatest" %% "scalatest" % scalaTestVersion % "test",
-    "org.scalamock" %% "scalamock-scalatest-support" % scalaMockVersion % "test"
+    "org.specs2" %% "specs2-core" % "3.8.9" % "test",
+    "org.specs2" %% "specs2-mock" % "3.8.9"
   )
 }

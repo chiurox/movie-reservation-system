@@ -20,3 +20,8 @@ case class MovieShowing(id: Option[MovieId] = None,
   require(availableSeats > 0, "availableSeats.empty")
   require(availableSeats >= reservedSeats, "reservedSeats cannot be greater than availableSeats")
 }
+
+case class MovieShowingRegistration(imdbId: ImdbId,
+                                    screenId: ScreenId,
+                                    availableSeats: Int
+                                   ) extends MovieIdentification(imdbId, screenId)

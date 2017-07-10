@@ -1,11 +1,16 @@
 package api
 
 import akka.http.scaladsl.server.Directives._
+import api.routes.MoviesRoute
+import services.MoviesService
 
 import scala.concurrent.ExecutionContext
 
-class ApiService()(implicit executionContext: ExecutionContext) {
+class ApiService(moviesService: MoviesService)(implicit executionContext: ExecutionContext) {
 
-  val routes = pathPrefix("v1") (getFromResource("public/index.html"))
+  val moviesRoute = new MoviesRoute(moviesService)
+  val routes = pathPrefix("v1") {
+    moviesRoute.route
+  }
 
 }

@@ -8,6 +8,8 @@ trait DbMigrationService {
 
   def clean(): Unit
 
+  def reload(): Int
+
 }
 
 class FlywayServiceImpl(jdbcUrl: String, dbUser: String, dbPass: String) extends DbMigrationService {
@@ -18,4 +20,9 @@ class FlywayServiceImpl(jdbcUrl: String, dbUser: String, dbPass: String) extends
   override def migrate(): Int = flyway.migrate()
 
   override def clean(): Unit = flyway.clean()
+
+  override def reload(): Int = {
+    flyway.clean()
+    flyway.migrate()
+  }
 }
