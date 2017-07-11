@@ -35,6 +35,10 @@ class MovieTitlesServiceImpl(val endpoint: String, val token: String)
           val endOfTitle = afterTitle.indexOf("\",")
           afterTitle.substring(0, endOfTitle)
         }.map(Some(_))
+    } recover {
+      case e: Exception =>
+        logger.error(s"Could not fetch movie title from API: ${e.getMessage}")
+        None
     }
   }
 }

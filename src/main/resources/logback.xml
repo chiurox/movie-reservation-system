@@ -7,13 +7,15 @@
             <pattern>%date{MM/dd HH:mm:ss} %-5level[%.15thread] %logger{1} - %msg%n</pattern>
         </encoder>
     </appender>
-    <logger name="slick.jdbc" level="OFF" />
+    <logger name="org.flywaydb" level="OFF" />
+    <logger name="com.zaxxer.hikari" level="OFF"/>
     <logger name="slick.jdbc.JdbcBackend.statement" level="DEBUG"/>
+    <logger name="slick.jdbc" level="OFF" />
     <logger name="slick.memory" level="OFF" />
     <logger name="slick.ast" level="OFF" />
     <logger name="slick.relational" level="OFF" />
     <logger name="slick.compiler" level="OFF" />
-    <root level="OFF">
+    <root level="DEBUG">
         <appender-ref ref="CONSOLE"/>
     </root>
 
