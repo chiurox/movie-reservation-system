@@ -1,8 +1,7 @@
 package models.db
 
-import models.{Movie, MovieId, MovieIdent}
+import models.{Movie, MovieId}
 import services.DatabaseService
-
 
 trait MovieTable {
 

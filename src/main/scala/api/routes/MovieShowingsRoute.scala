@@ -20,20 +20,23 @@ class MovieShowingsRoute(movieShowingsService: MovieShowingsService)(implicit ex
             case SeatsReservedSuccessfully => complete(OK, s"${SeatsReservedSuccessfully.message}: $reservation")
             case NoSeatsAvailable => complete(Conflict, s"${NoSeatsAvailable.message}: $reservation")
             case MovieShowingNotFound => complete(NotFound, s"${MovieShowingNotFound.message}: $reservation")
+            case _ => complete(InternalServerError)
           }
         }
-      } ~
-        post {
-          entity(as[MovieShowingRegistration]) { showing =>
-            complete(Created -> insert(showing))
+      } ~ post {
+        entity(as[MovieShowingRegistration]) { showingRegistration =>
+          onSuccess(insert(showingRegistration)) {
+            case MovieShowingSavedSuccessfully => complete(Created, s"${MovieShowingSavedSuccessfully.message}: $showingRegistration")
+            case MovieTitleNotFound => complete(NotFound, s"${MovieTitleNotFound.message}: ${showingRegistration.imdbId}")
+            case MovieShowingAlreadyExists => complete(OK, s"${MovieShowingAlreadyExists.message}: $showingRegistration")
+            case _ => complete(InternalServerError)
           }
-        } ~
-        parameters('imdbId.as[ImdbId], 'screenId.as[ScreenId]) {
-          (imdbId, screenId) => complete(getMovieInformationByIdentifiers(imdbId, screenId))
-        } ~
-        get {
-          complete(getShowings)
         }
+      } ~ parameters('imdbId.as[ImdbId], 'screenId.as[ScreenId]) {
+        (imdbId, screenId) => complete(getMovieInformationByIdentifiers(imdbId, screenId))
+      } ~ get {
+        complete(getShowings)
+      }
     }
   }
 

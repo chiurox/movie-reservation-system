@@ -3,7 +3,6 @@ package models.db
 import models._
 import services.DatabaseService
 
-
 trait MovieShowingTable {
 
   protected val databaseService: DatabaseService

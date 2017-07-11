@@ -1,8 +1,7 @@
 import akka.http.scaladsl.Http
-import akka.http.scaladsl.server.Directives._
 import api.{ApiService, Resource}
 import com.typesafe.scalalogging.StrictLogging
-import services.{DatabaseServiceImpl, FlywayServiceImpl, MovieShowingsServiceImpl, MoviesServiceImpl}
+import services._
 import utils.{ActorContext, Config}
 
 object Main extends App with Config with ActorContext with Resource with StrictLogging {
@@ -13,8 +12,9 @@ object Main extends App with Config with ActorContext with Resource with StrictL
   val dbMigrationResult = flywayService.migrate
   logger.info(s"Database migrations run: $dbMigrationResult")
 
-  val moviesService = new MoviesServiceImpl(dbService)
-  val movieShowingsService = new MovieShowingsServiceImpl(dbService)
+  val movieTitlesService = new MovieTitlesServiceImpl(movieTitleEndpoint, movieTitleToken)
+  val moviesService = new MoviesServiceImpl(dbService, movieTitlesService)
+  val movieShowingsService = new MovieShowingsServiceImpl(dbService, moviesService)
   val apiService = new ApiService(moviesService, movieShowingsService)
 
   Http().bindAndHandle(handler = logRequestResult("log")(apiService.routes), interface = httpInterface, port = httpPort)

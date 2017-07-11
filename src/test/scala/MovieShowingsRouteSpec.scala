@@ -1,9 +1,10 @@
-import akka.http.scaladsl.model.HttpHeader.ParsingResult.Ok
 import akka.http.scaladsl.model.StatusCodes._
 import akka.http.scaladsl.server.Route
 import models._
 import org.scalatest.concurrent.ScalaFutures
 import spray.json._
+
+import scala.concurrent.Future
 
 class MovieShowingsRouteSpec extends BaseServiceSpec with ScalaFutures {
 
@@ -37,16 +38,26 @@ class MovieShowingsRouteSpec extends BaseServiceSpec with ScalaFutures {
 
     "register a movie showing" in {
       val newMovieShowingRegistration = MovieShowingRegistration(imdbId = "t11", screenId = "s1", availableSeats = 100)
+
+      val movieTitleFromApi = "Movie Title From Third Party API"
+      movieTitlesService.fetchTitle(anyString) returns Future.successful(Some(movieTitleFromApi))
+
       Post(s"/v1/movie-showings", newMovieShowingRegistration.toJson) ~> routes ~> check {
         handled shouldEqual true
         status shouldEqual Created
-        val response = responseAs[MovieInformation]
-        response.availableSeats should equal(newMovieShowingRegistration.availableSeats)
-        response.imdbId should equal(newMovieShowingRegistration.imdbId)
-        response.screenId should equal(newMovieShowingRegistration.screenId)
+        val response = responseAs[String] should equal(s"${MovieShowingSavedSuccessfully.message}: $newMovieShowingRegistration")
 
         whenReady(movieShowingsService.getShowings) {
           result => result.size should equal(testMovieInformations.size + 1)
+        }
+
+        whenReady(moviesService.getMovies) {
+          result => result.size should equal(testMovies.size + 1)
+        }
+
+        whenReady(moviesService.findByImdbId(newMovieShowingRegistration.imdbId)) {
+          case Some(result) => result.movieTitle should equal(Some(movieTitleFromApi))
+          case None => fail
         }
       }
     }

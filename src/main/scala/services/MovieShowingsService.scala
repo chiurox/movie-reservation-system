@@ -3,8 +3,9 @@ package services
 import com.typesafe.scalalogging.StrictLogging
 import models._
 import models.db.{MovieShowingTable, MovieTable}
+import utils.ActorContext
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.Future
 import scala.language.postfixOps
 
 trait MovieShowingsService {
@@ -17,11 +18,12 @@ trait MovieShowingsService {
 
   def reserveSeat(movieShowingReservation: MovieShowingReservation): Future[ServiceResult]
 
-  def insert(movie: MovieShowingRegistration): Future[MovieInformation]
+  def insert(movie: MovieShowingRegistration): Future[ServiceResult]
 }
 
-class MovieShowingsServiceImpl(val databaseService: DatabaseService)(implicit executionContext: ExecutionContext)
-  extends MovieShowingTable with MovieShowingsService with MovieTable with StrictLogging {
+class MovieShowingsServiceImpl(val databaseService: DatabaseService,
+                               val moviesService: MoviesService)
+  extends MovieShowingTable with MovieShowingsService with MovieTable with ActorContext with StrictLogging {
 
   import databaseService._
   import databaseService.driver.api._
@@ -61,32 +63,35 @@ class MovieShowingsServiceImpl(val databaseService: DatabaseService)(implicit ex
     }
   }
 
-  override def insert(movieShowingRegistration: MovieShowingRegistration): Future[MovieInformation] = {
-    def save() = {
-      val movie = Movie(imdbId = movieShowingRegistration.imdbId, movieTitle = Some("movie title from api"))
+  override def insert(movieShowingRegistration: MovieShowingRegistration): Future[ServiceResult] = {
+    def save(movie: Movie) = {
       val query = for {
         _ <- movies returning movies.map(_.id) += movie
         movieShowing = MovieShowing(
           imdbId = movieShowingRegistration.imdbId,
           screenId = movieShowingRegistration.screenId,
           availableSeats = movieShowingRegistration.availableSeats)
-        _ <- moviesShowing returning moviesShowing.map(_.id) += movieShowing
-      } yield {
-        MovieInformation(
-          imdbId = movie.imdbId,
-          screenId = movieShowing.screenId,
-          movieTitle = movie.movieTitle,
-          availableSeats = movieShowing.availableSeats,
-          reservedSeats = movieShowing.reservedSeats)
-      }
-      db.run(query.transactionally)
+        moviesShowing <- moviesShowing returning moviesShowing.map(_.id) += movieShowing
+      } yield moviesShowing
+      db.run(query.transactionally).map(_ => MovieShowingSavedSuccessfully)
     }
 
     getMovieInformationByIdentifiers(movieShowingRegistration.imdbId, movieShowingRegistration.screenId) flatMap {
-      case Some(existing) =>
-        logger.debug(s"$movieShowingRegistration already exists")
-        Future.successful(existing)
-      case None => save
+      case Some(_) => Future.successful(MovieShowingAlreadyExists)
+      case None =>
+        val movie = Movie(imdbId = movieShowingRegistration.imdbId, movieTitle = None)
+        moviesService.fillMovieTitle(movie) flatMap {
+          movie => movie.movieTitle match {
+            case Some(_) => save(movie)
+            case None =>
+              logger.debug(s"Movie title could not be found for $movieShowingRegistration")
+              Future.successful(MovieTitleNotFound)
+          }
+        } recover {
+          case e: Exception =>
+            logger.error(s"${e.getMessage}")
+            MovieTitleNotFound
+        }
     }
   }
 

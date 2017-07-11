@@ -2,8 +2,9 @@ package services
 
 import models._
 import models.db.MovieTable
+import utils.ActorContext
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.Future
 import scala.language.postfixOps
 
 trait MoviesService {
@@ -16,13 +17,17 @@ trait MoviesService {
 
   def insert(movie: Movie): Future[Movie]
 
+  def fillMovieTitle(movie: Movie): Future[Movie]
+
   def update(movie: Movie): Future[Option[Movie]]
 
   def delete(imdbId: ImdbId): Future[Int]
+
 }
 
-class MoviesServiceImpl(val databaseService: DatabaseService)(implicit executionContext: ExecutionContext)
-  extends MovieTable with MoviesService {
+class MoviesServiceImpl(val databaseService: DatabaseService,
+                        val movieTitlesService: MovieTitlesService)
+  extends MovieTable with MoviesService with ActorContext {
 
   import databaseService._
   import databaseService.driver.api._
@@ -35,6 +40,13 @@ class MoviesServiceImpl(val databaseService: DatabaseService)(implicit execution
 
   override def insert(movie: Movie): Future[Movie] = {
     db.run(movies returning movies.map(_.id) += movie).map(movieId => movie.copy(id = movieId))
+  }
+
+  override def fillMovieTitle(movie: Movie): Future[Movie] = {
+    movieTitlesService.fetchTitle(movie.imdbId) map {
+      case Some(movieTitle) => movie.copy(movieTitle = Some(movieTitle))
+      case None => movie
+    }
   }
 
   override def update(movie: Movie): Future[Option[Movie]] = {
